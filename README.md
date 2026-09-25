@@ -303,3 +303,5 @@ Made with ❤️ in Vietnam 🇻🇳
 [![Star History Chart](https://api.star-history.com/svg?repos=YOUR_USERNAME/vietdub-auto&type=Date)](https://star-history.com/#YOUR_USERNAME/vietdub-auto&Date)
 
 </div>
+#   f o d e c u c k  
+ 
