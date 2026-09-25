@@ -1,0 +1,91 @@
+name: 🐛 Bug Report
+description: Báo cáo lỗi để giúp cải thiện VietDub Auto
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cảm ơn bạn đã báo cáo lỗi! Vui lòng điền đầy đủ thông tin bên dưới.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🔍 Mô tả lỗi
+      description: Mô tả rõ ràng lỗi bạn gặp phải
+      placeholder: "Khi chạy lệnh... thì gặp lỗi..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 🔄 Các bước tái hiện
+      description: Các bước để tái hiện lỗi
+      value: |
+        1. Chạy lệnh `python main.py --url "..."`
+        2. Chọn...
+        3. Lỗi xuất hiện tại...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Hành vi mong đợi
+      placeholder: "Kết quả mong đợi là..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Log / Error message
+      description: Paste toàn bộ error message hoặc log
+      render: shell
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 💻 Hệ điều hành
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS
+        - Ubuntu/Debian
+        - Khác
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: 🐍 Python version
+      placeholder: "python --version"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ffmpeg
+    attributes:
+      label: 🎞️ FFmpeg đã cài chưa?
+      options:
+        - "✅ Có, đã thêm vào PATH"
+        - "⚠️ Có nhưng chưa vào PATH"
+        - "❌ Chưa cài"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist trước khi submit
+      options:
+        - label: Tôi đã đọc [README.md](../blob/main/README.md)
+          required: true
+        - label: Tôi đã kiểm tra Issues cũ và không thấy trùng lặp
+          required: true
+        - label: Tôi đã điền API keys trong file `.env`
+          required: true

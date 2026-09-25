@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  # === VietDub Backend API ===
+  backend:
+    build: .
+    container_name: vietdub-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TTS_VOICE=${TTS_VOICE:-vi-VN-HoaiMyNeural}
+      - ORIGINAL_AUDIO_VOLUME=${ORIGINAL_AUDIO_VOLUME:-0.12}
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./output:/app/output
+      - ./backend/client_secrets.json:/app/backend/client_secrets.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # === Nginx (reverse proxy + serve frontend) ===
+  nginx:
+    image: nginx:alpine
+    container_name: vietdub-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./.github/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  output_data:

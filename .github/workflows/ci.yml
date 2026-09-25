@@ -1,0 +1,131 @@
+name: 🧪 CI — Test & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================================
+  # Job 1: Lint & Code Quality
+  # ============================================================
+  lint:
+    name: 🔍 Lint & Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install lint tools
+        run: |
+          pip install ruff black isort
+
+      - name: Run Ruff (linter)
+        run: ruff check backend/ --output-format=github
+
+      - name: Check Black formatting
+        run: black --check backend/ --line-length 100
+
+      - name: Check import ordering
+        run: isort --check-only backend/
+
+  # ============================================================
+  # Job 2: Unit Tests
+  # ============================================================
+  test:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY_TEST }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY_TEST }}
+        run: |
+          pytest tests/ -v --cov=backend --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  # ============================================================
+  # Job 3: Test Pipeline Modules (offline — no API calls)
+  # ============================================================
+  test-offline:
+    name: 🔌 Offline Module Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install core dependencies
+        run: |
+          pip install yt-dlp pydub python-dotenv pytest
+
+      - name: Test subtitle parser
+        run: |
+          python -c "
+          from backend.pipeline.downloader import parse_vtt_content
+          sample = '''WEBVTT
+          
+          00:00:01.000 --> 00:00:03.000
+          Hello world
+          
+          00:00:03.500 --> 00:00:05.000
+          This is a test
+          '''
+          entries = parse_vtt_content(sample)
+          assert len(entries) == 2
+          assert entries[0].text == 'Hello world'
+          assert entries[0].start == 1.0
+          print('✅ VTT parser OK:', len(entries), 'entries')
+          "
+
+      - name: Test SRT export
+        run: |
+          python -c "
+          import tempfile, os
+          from backend.pipeline.downloader import SubtitleEntry
+          from backend.pipeline.translator import export_srt
+          entries = [SubtitleEntry(start=1.0, end=3.0, text='Xin chào')]
+          with tempfile.NamedTemporaryFile(suffix='.srt', delete=False, mode='w') as f:
+              path = f.name
+          export_srt(entries, path)
+          content = open(path).read()
+          assert 'Xin chào' in content
+          assert '00:00:01,000' in content
+          os.unlink(path)
+          print('✅ SRT export OK')
+          "

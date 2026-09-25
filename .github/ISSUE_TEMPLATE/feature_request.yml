@@ -1,0 +1,35 @@
+name: ✨ Feature Request
+description: Đề xuất tính năng mới cho VietDub Auto
+title: "[Feature]: "
+labels: ["enhancement"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cảm ơn bạn đã đề xuất tính năng! Hãy mô tả chi tiết ý tưởng của bạn.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Vấn đề muốn giải quyết
+      placeholder: "Hiện tại tôi gặp khó khăn khi..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Giải pháp đề xuất
+      placeholder: "Tôi muốn có tính năng..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 📊 Mức độ quan trọng
+      options:
+        - "🔴 Critical — Không có tính năng này khó dùng"
+        - "🟡 Nice to have — Có thì tốt hơn"
+        - "🟢 Low priority — Có thể để sau"
