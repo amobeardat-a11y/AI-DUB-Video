@@ -712,7 +712,8 @@
   </div>
 
   <script>
-    const API_BASE = 'http://localhost:8000';
+    // Khi mở qua nginx/http dùng đường dẫn tương đối; khi mở trực tiếp file:// thì gọi backend local
+    const API_BASE = location.protocol === 'file:' ? 'http://localhost:8000' : '';
     let currentJobId = null;
     let ws = null;
     let options = { youtube: false, facebook: false };
@@ -811,7 +812,13 @@
 
     // === WebSocket ===
     function connectWebSocket(jobId) {
-      const wsUrl = `ws://localhost:8000/ws/${jobId}`;
+      let wsUrl;
+      if (location.protocol === 'file:') {
+        wsUrl = `ws://localhost:8000/ws/${jobId}`;
+      } else {
+        const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${wsProto}//${location.host}/ws/${jobId}`;
+      }
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
