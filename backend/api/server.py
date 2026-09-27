@@ -20,9 +20,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 app = FastAPI(title="VietDub Auto API", version="1.0.0")
 
+# Cấu hình CORS origins qua env (mặc định cho local dev). Không dùng "*" kèm credentials.
+_cors_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost,http://localhost:80,http://localhost:8000,http://127.0.0.1",
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _cors_origins if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

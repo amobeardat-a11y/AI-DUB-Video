@@ -1,6 +1,6 @@
 """
-downloader.py — Tải video YouTube và lấy subtitle
-Ưu tiên: subtitle YouTube gốc → Groq Whisper fallback
+downloader.py — Tải video (YouTube / Douyin / Bilibili...) và lấy subtitle
+Ưu tiên: subtitle gốc → Groq Whisper fallback
 """
 import os
 import json
@@ -50,8 +50,8 @@ def parse_vtt_content(vtt_text: str) -> list[SubtitleEntry]:
         if "-->" in line:
             try:
                 start_str, end_str = line.split("-->")
-                # Remove positioning info
-                end_str = end_str.split(" ")[0]
+                # Remove positioning info; strip trước để bỏ khoảng trắng quanh "-->"
+                end_str = end_str.strip().split(" ")[0]
                 start = parse_vtt_time(start_str)
                 end = parse_vtt_time(end_str)
                 # Collect text lines
@@ -80,9 +80,17 @@ def download_video(url: str, output_dir: str = "./output") -> DownloadResult:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Cookies giúp né YouTube chặn IP datacenter (GitHub Actions/VPS)
+    cookies_file = os.getenv("YT_COOKIES_FILE")
+    # Ngôn ngữ nguồn ưu tiên khi tìm subtitle có sẵn
+    source_lang = os.getenv("SOURCE_LANG", "zh")
+
     # === Bước 1: Lấy thông tin video ===
     print(f"🔍 Đang lấy thông tin video: {url}")
-    with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+    _info_opts = {"quiet": True}
+    if cookies_file and os.path.exists(cookies_file):
+        _info_opts["cookiefile"] = cookies_file
+    with yt_dlp.YoutubeDL(_info_opts) as ydl:
         info = ydl.extract_info(url, download=False)
     
     video_id = info.get("id", "unknown")
@@ -103,11 +111,12 @@ def download_video(url: str, output_dir: str = "./output") -> DownloadResult:
     print("⬇️  Đang tải video...")
     
     ydl_opts = {
-        "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best[height<=720]",
+        # Hỗ trợ đa nền tảng: YouTube (mp4+m4a), Douyin/Bilibili (DASH hoặc stream đơn)
+        "format": "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
         "outtmpl": str(base_path) + ".%(ext)s",
         "writesubtitles": True,
         "writeautomaticsub": True,
-        "subtitleslangs": ["en", "vi"],
+        "subtitleslangs": [source_lang, "zh", "zh-Hans", "zh-CN", "en", "vi"],
         "subtitlesformat": "vtt",
         "merge_output_format": "mp4",
         "postprocessors": [{
@@ -117,6 +126,8 @@ def download_video(url: str, output_dir: str = "./output") -> DownloadResult:
         "quiet": False,
         "no_warnings": False,
     }
+    if cookies_file and os.path.exists(cookies_file):
+        ydl_opts["cookiefile"] = cookies_file
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
@@ -141,8 +152,8 @@ def download_video(url: str, output_dir: str = "./output") -> DownloadResult:
     subtitles = []
     sub_source = "whisper"
 
-    # Tìm file .vtt được tải về (en trước, vi sau)
-    for lang in ["en", "vi"]:
+    # Tìm file .vtt được tải về (ngôn ngữ nguồn trước)
+    for lang in [source_lang, "zh", "zh-Hans", "zh-CN", "en", "vi"]:
         for vtt_file in output_dir.glob(f"{video_id}*.{lang}.vtt"):
             print(f"✅ Tìm thấy subtitle YouTube ({lang}): {vtt_file.name}")
             with open(vtt_file, encoding="utf-8") as f:

@@ -16,25 +16,48 @@ CREDENTIALS_FILE = os.getenv("YOUTUBE_CREDENTIALS_FILE", "youtube_credentials.js
 CLIENT_SECRETS = os.getenv("YOUTUBE_CLIENT_SECRETS_FILE", "client_secrets.json")
 
 
+def _creds_from_env():
+    """Tạo credentials từ env (headless — cho GitHub Actions/CI)."""
+    client_id = os.getenv("YOUTUBE_CLIENT_ID")
+    client_secret = os.getenv("YOUTUBE_CLIENT_SECRET")
+    refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN")
+    if not (client_id and client_secret and refresh_token):
+        return None
+    from google.oauth2.credentials import Credentials
+    creds = Credentials(
+        token=None,
+        refresh_token=refresh_token,
+        client_id=client_id,
+        client_secret=client_secret,
+        token_uri="https://oauth2.googleapis.com/token",
+        scopes=SCOPES,
+    )
+    creds.refresh(Request())
+    return creds
+
+
 def get_youtube_service():
     """Lấy authenticated YouTube service."""
-    creds = None
+    # Ưu tiên refresh token từ env (headless, chạy được trên GitHub Actions)
+    creds = _creds_from_env()
+    if creds:
+        return build("youtube", "v3", credentials=creds)
+
     creds_path = Path(CREDENTIALS_FILE)
-    
     if creds_path.exists():
         with open(creds_path, "rb") as f:
             creds = pickle.load(f)
-    
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS, SCOPES)
             creds = flow.run_local_server(port=0)
-        
+
         with open(creds_path, "wb") as f:
             pickle.dump(creds, f)
-    
+
     return build("youtube", "v3", credentials=creds)
 
 
